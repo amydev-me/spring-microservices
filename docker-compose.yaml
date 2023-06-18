@@ -1,0 +1,88 @@
+version: '3.7'
+
+services:
+  currency-exchange:
+    image:  amypyaephyonaing/mmv2-spring-currency-exchange-service:0.0.1-SNAPSHOT
+    ports:
+      - "8000:8000"
+    networks:
+      - currency-network
+    depends_on:
+      - naming-server
+      - rabbitmq
+    environment:
+      EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT : http://zipkin-server:9411/api/v2/spans
+      SPRING.RABBITMQ.HOST: rabbitmq
+      SPRING.RABBITMQ.USERNAME: guest
+      SPRING.RABBITMQ.PASSWORD: guest
+      SPRING.RABBITMQ.PORT: 5672
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit  
+
+  naming-server:
+    image:  amypyaephyonaing/mmv2-naming-server:0.0.1-SNAPSHOT
+    ports:
+      - "8761:8761"
+    networks:
+      - currency-network
+
+  rabbitmq:
+    image:  rabbitmq:3.12.0-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - currency-network
+
+  zipkin-server:
+    image:  openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+    networks:
+      - currency-network
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBIT_URI: amqp://guest:guest@rabbitmq:5672
+    restart: always
+   
+  
+ 
+  
+  currency-conversion:
+    image: amypyaephyonaing/mmv2-currency-conversion-service:0.0.1-SNAPSHOT
+    ports:
+      - "8100:8100"
+    networks:
+      - currency-network
+    depends_on: 
+      - naming-server
+      - rabbitmq
+    environment:
+      EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT : http://zipkin-server:9411/api/v2/spans
+      SPRING.RABBITMQ.HOST: rabbitmq
+      SPRING.RABBITMQ.USERNAME: guest
+      SPRING.RABBITMQ.PASSWORD: guest
+      SPRING.RABBITMQ.PORT: 5672
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit 
+
+  api-gateway:
+    image: amypyaephyonaing/mmv2-api-gateway:0.0.1-SNAPSHOT
+    ports:
+      - "8765:8765"
+    networks:
+      - currency-network
+    depends_on: 
+      - naming-server
+      - rabbitmq
+    environment:
+      EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT : http://zipkin-server:9411/api/v2/spans
+      SPRING.RABBITMQ.HOST: rabbitmq
+      SPRING.RABBITMQ.USERNAME: guest
+      SPRING.RABBITMQ.PASSWORD: guest
+      SPRING.RABBITMQ.PORT: 5672
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit 
+networks:
+  currency-network:
